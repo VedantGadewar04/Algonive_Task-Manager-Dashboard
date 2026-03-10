@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Task Manager – Algonive Tech</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body>
+
+
+<div id="successBanner" class="success-banner" aria-live="polite">
+  <div class="banner-inner">
+    <span class="banner-icon"><i class="fa-solid fa-circle-check"></i></span>
+    <span id="bannerText">Your task has been successfully added!</span>
+    <button class="banner-close" onclick="closeBanner()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="banner-timer"></div>
+</div>
+
+
+<div id="reminderOverlay" class="overlay hidden">
+  <div class="reminder-modal">
+    <div class="reminder-icon"><i class="fa-solid fa-bell"></i></div>
+    <h2>Deadline Alert</h2>
+    <p id="reminderText"></p>
+    <button onclick="closeReminder()" class="btn-primary">Got it!</button>
+  </div>
+</div>
+
+
+<div id="editOverlay" class="overlay hidden">
+  <div class="edit-modal">
+    <div class="modal-header">
+      <h2><i class="fa-solid fa-pen-to-square"></i> Edit Task</h2>
+      <button class="close-btn" onclick="closeEditModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form id="editForm" onsubmit="saveEdit(event)">
+      <div class="form-group">
+        <label>Task Title</label>
+        <input type="text" id="editTitle" placeholder="Task title" required />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="editDesc" placeholder="Task description" rows="3"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Due Date</label>
+          <input type="datetime-local" id="editDate" required />
+        </div>
+        <div class="form-group">
+          <label>Priority</label>
+          <select id="editPriority">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+      <input type="hidden" id="editIndex" />
+      <button type="submit" class="btn-primary full-width">Save Changes</button>
+    </form>
+  </div>
+</div>
+
+
+<div id="settingsOverlay" class="overlay hidden">
+  <div class="settings-modal">
+    <div class="modal-header">
+      <h2><i class="fa-solid fa-sliders"></i> Preferences</h2>
+      <button class="close-btn" onclick="closeSettings()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="settings-section">
+      <p class="settings-label"><i class="fa-solid fa-moon"></i> Theme</p>
+      <div class="theme-options">
+        <button class="theme-btn active" data-theme="dark" onclick="applyTheme('dark',this)">
+          <span class="theme-preview dark-prev"></span><span>Dark</span>
+        </button>
+        <button class="theme-btn" data-theme="light" onclick="applyTheme('light',this)">
+          <span class="theme-preview light-prev"></span><span>Light</span>
+        </button>
+        <button class="theme-btn" data-theme="midnight" onclick="applyTheme('midnight',this)">
+          <span class="theme-preview midnight-prev"></span><span>Midnight</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <p class="settings-label"><i class="fa-solid fa-droplet"></i> Accent Color</p>
+      <div class="accent-options">
+        <button class="accent-dot active" style="background:#6c63ff" onclick="applyAccent(this,'#6c63ff','#a78bfa')" title="Violet"></button>
+        <button class="accent-dot" style="background:#38bdf8" onclick="applyAccent(this,'#38bdf8','#7dd3fc')" title="Sky"></button>
+        <button class="accent-dot" style="background:#22d3a5" onclick="applyAccent(this,'#22d3a5','#34d399')" title="Emerald"></button>
+        <button class="accent-dot" style="background:#f472b6" onclick="applyAccent(this,'#f472b6','#fb7185')" title="Rose"></button>
+        <button class="accent-dot" style="background:#fb923c" onclick="applyAccent(this,'#fb923c','#fbbf24')" title="Amber"></button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <p class="settings-label"><i class="fa-solid fa-text-height"></i> Font Size</p>
+      <div class="font-options">
+        <button class="font-btn" onclick="applyFont('13px',this)">Small</button>
+        <button class="font-btn active" onclick="applyFont('15px',this)">Default</button>
+        <button class="font-btn" onclick="applyFont('17px',this)">Large</button>
+      </div>
+    </div>
+
+    <div class="settings-tip">
+      <div class="tip-icon"><i class="fa-solid fa-lightbulb"></i></div>
+      <div class="tip-text">
+        <strong>Productivity Tip</strong>
+        <p id="proTip">Break large tasks into sub-steps to maintain momentum.</p>
+      </div>
+      <button class="tip-refresh" onclick="newTip()" title="New tip">
+        <i class="fa-solid fa-rotate-right"></i>
+      </button>
+    </div>
+
+    <div class="settings-stats-row">
+      <div class="mini-stat"><i class="fa-solid fa-bolt"></i><span id="ss-streak">0</span><small>Day Streak</small></div>
+      <div class="mini-stat"><i class="fa-solid fa-trophy"></i><span id="ss-done">0</span><small>All-time Done</small></div>
+      <div class="mini-stat"><i class="fa-solid fa-star"></i><span id="ss-rate">0%</span><small>Success Rate</small></div>
+    </div>
+  </div>
+</div>
+
+
+<div class="app-wrapper">
+
+  
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fa-solid fa-bolt"></i></div>
+      <span class="brand-name">TaskFlow</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <p class="nav-section-label">MENU</p>
+      <a href="#" class="nav-item active" onclick="switchView('dashboard',this); return false;">
+        <i class="fa-solid fa-house"></i><span>Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" onclick="switchView('all',this); return false;">
+        <i class="fa-solid fa-list-check"></i><span>All Tasks</span>
+      </a>
+      <a href="#" class="nav-item" onclick="switchView('completed',this); return false;">
+        <i class="fa-solid fa-circle-check"></i><span>Completed</span>
+      </a>
+      <p class="nav-section-label">OTHER</p>
+      <a href="#" class="nav-item" onclick="openSettings(); return false;">
+        <i class="fa-solid fa-gear"></i><span>Settings</span>
+      </a>
+      <a href="login.html" class="nav-item logout-item">
+        <i class="fa-solid fa-right-from-bracket"></i><span>Sign Out</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+       
+        <div class="user-info">
+         
+       
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  
+  <main class="main-content">
+
+    
+    <header class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-left">
+        <h1 id="viewTitle"> Task Manager Dashboard</h1>
+        <p id="currentDate" class="topbar-date"></p>
+      </div>
+      <div class="topbar-right">
+
+        
+        <div class="search-toggle-wrap" id="searchWrap">
+          <div class="search-expandable" id="searchExpandable">
+            <i class="fa-solid fa-magnifying-glass search-inner-icon"></i>
+            <input type="text" id="searchInput" placeholder="Search tasks…" oninput="renderTasks()" />
+            <button class="search-clear hidden" id="searchClear" onclick="clearSearch()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <button class="search-icon-btn" id="searchToggleBtn" onclick="toggleSearch()" aria-label="Search tasks">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </div>
+
+        <button class="topbar-icon-btn" onclick="openSettings()" title="Preferences">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+        
+      </div>
+    </header>
+
+    
+    <section id="dashboardSection">
+      <div class="stats-grid">
+        <div class="stat-card total">
+          <div class="stat-icon"><i class="fa-solid fa-layer-group"></i></div>
+          <div class="stat-info">
+            <span id="statTotal" class="stat-num">0</span>
+            <span class="stat-label">Total Tasks</span>
+          </div>
+        </div>
+        <div class="stat-card completed">
+          <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="stat-info">
+            <span id="statCompleted" class="stat-num">0</span>
+            <span class="stat-label">Completed</span>
+          </div>
+        </div>
+        <div class="stat-card pending">
+          <div class="stat-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+          <div class="stat-info">
+            <span id="statPending" class="stat-num">0</span>
+            <span class="stat-label">Pending</span>
+          </div>
+        </div>
+        <div class="stat-card high">
+          <div class="stat-icon"><i class="fa-solid fa-fire"></i></div>
+          <div class="stat-info">
+            <span id="statHigh" class="stat-num">0</span>
+            <span class="stat-label">High Priority</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-header">
+          <span>Overall Progress</span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressBar"></div>
+        </div>
+        <p id="progressMsg" class="progress-msg">Start adding tasks to track your progress.</p>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-header">
+          <i class="fa-solid fa-plus"></i>
+          <h2>New Task</h2>
+        </div>
+        <form id="taskForm" onsubmit="addTask(event)">
+          <div class="form-group">
+            <label for="taskTitle">Task Title <span class="req">*</span></label>
+            <input type="text" id="taskTitle" placeholder="e.g. Design landing page" required />
+          </div>
+          <div class="form-group">
+            <label for="taskDesc">Description</label>
+            <textarea id="taskDesc" placeholder="Brief description of the task…" rows="2"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="taskDate">Due Date <span class="req">*</span></label>
+              <input type="datetime-local" id="taskDate" required />
+            </div>
+            <div class="form-group">
+              <label for="taskPriority">Priority</label>
+              <select id="taskPriority">
+                <option value="low">🟢 Low</option>
+                <option value="medium" selected>🟡 Medium</option>
+                <option value="high">🔴 High</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">
+            <i class="fa-solid fa-plus"></i> Add Task
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <section id="tasksSection">
+      <div class="tasks-toolbar">
+        <div class="filter-group" id="filterButtons">
+          <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">
+            <i class="fa-solid fa-border-all"></i><span>All</span>
+            <span class="filter-underline"></span>
+          </button>
+          <button class="filter-btn" data-filter="pending" onclick="setFilter('pending',this)">
+            <i class="fa-solid fa-hourglass-half"></i><span>Pending</span>
+            <span class="filter-underline"></span>
+          </button>
+          <button class="filter-btn" data-filter="completed" onclick="setFilter('completed',this)">
+            <i class="fa-solid fa-circle-check"></i><span>Completed</span>
+            <span class="filter-underline"></span>
+          </button>
+          <button class="filter-btn" data-filter="high" onclick="setFilter('high',this)">
+            <i class="fa-solid fa-fire"></i><span>High Priority</span>
+            <span class="filter-underline"></span>
+          </button>
+        </div>
+        <span id="taskCount" class="task-count-badge"></span>
+      </div>
+
+      <div id="taskList" class="task-list"></div>
+
+      <div id="emptyState" class="empty-state hidden">
+        <div class="empty-icon"><i class="fa-solid fa-inbox"></i></div>
+        <h3>No tasks here yet</h3>
+        <p>Add a new task from the dashboard to get started.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
